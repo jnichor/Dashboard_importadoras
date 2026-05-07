@@ -1,0 +1,58 @@
+database:
+  path: "data/lima_importadores.db"
+
+scraper:
+  keywords:
+    - "importaciones"
+    - "importadora"
+    - "import"
+  districts:
+    # Lima Metropolitana — zonas comerciales/import principales
+    - "La Victoria"
+    - "Cercado de Lima"
+    - "Ate"
+    - "San Juan de Lurigancho"
+    - "Los Olivos"
+    - "Callao"
+    - "San Martín de Porres"
+    - "Independencia"
+    - "Surquillo"
+    - "San Luis"
+    # Provincia — capitales con actividad importadora
+    - "Arequipa"
+    - "Trujillo"
+    - "Chiclayo"
+    - "Piura"
+    - "Ica"
+    - "Cusco"
+    - "Tacna"
+    - "Huancayo"
+  rate_limiting:
+    scroll_delay_min: 2
+    scroll_delay_max: 5
+    listing_delay_min: 1
+    listing_delay_max: 3
+    district_delay_min: 120
+    district_delay_max: 300
+    retry_backoff_start: 5
+    retry_backoff_max: 60
+    long_break_every_n_districts: 5
+    long_break_min: 600
+    long_break_max: 900
+  max_listings_per_query: 80
+  max_retries: 2
+
+enrichment:
+  request_timeout: 10
+  max_redirects: 3
+  wayback_timeout: 15
+  outdated_threshold_years: 5
+
+qualifier:
+  min_rating: 3.5
+  max_review_count: 49
+  antigüedad_years: 5
+
+logging:
+  level: "INFO"
+  file: "logs/scraper.log"
