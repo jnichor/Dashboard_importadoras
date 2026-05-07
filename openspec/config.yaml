@@ -1,0 +1,30 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Python (Playwright + SQLite + Streamlit)
+  Architecture: Scraper → SQLite → Streamlit dashboard
+  Testing: Not configured
+  Style: Not configured
+
+strict_tdd: false
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify Google scraping risks and mitigations
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for scraper and dashboard flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group tasks by phase (scraper, enrichment, storage, dashboard)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns and conventions
+  verify:
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas
