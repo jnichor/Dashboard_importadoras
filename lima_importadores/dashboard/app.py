@@ -760,7 +760,47 @@ def render_analytics(filtered: pd.DataFrame) -> None:
 # Main app
 # ---------------------------------------------------------------------------
 
+def check_password() -> bool:
+    """Password gate. Returns True if authenticated.
+    Uses st.secrets["dashboard_password"]; if no secret is set, allows access (local dev)."""
+    if st.session_state.get("authenticated", False):
+        return True
+
+    correct_pw = None
+    try:
+        correct_pw = st.secrets["dashboard_password"]
+    except (FileNotFoundError, KeyError, Exception):
+        return True  # No secret configured — local dev mode
+
+    st.markdown(
+        """
+        <div class="hero" style="margin-top: 4rem;">
+            <div class="hero-content">
+                <span class="hero-badge">🔒 Acceso restringido</span>
+                <h1 class="hero-title">Lima Importadores</h1>
+                <p class="hero-subtitle">Ingresá la contraseña para acceder al dashboard.</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.form("login_form", clear_on_submit=False):
+        pw = st.text_input("Contraseña", type="password", placeholder="••••••••", label_visibility="collapsed")
+        submitted = st.form_submit_button("Ingresar", use_container_width=True)
+        if submitted:
+            if pw == correct_pw:
+                st.session_state["authenticated"] = True
+                st.rerun()
+            else:
+                st.error("❌ Contraseña incorrecta")
+    return False
+
+
 def main():
+    if not check_password():
+        return
+
     db_path = CONFIG.database.path
     df = load_data(db_path)
 

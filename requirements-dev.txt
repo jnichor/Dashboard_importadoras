@@ -1,0 +1,8 @@
+# Full stack for local development (incluye scraping y enriquecimiento)
+# Para deploy en Streamlit Cloud usar requirements.txt (más liviano)
+
+-r requirements.txt
+playwright==1.49.0
+playwright-stealth==1.0.6
+requests==2.32.3
+beautifulsoup4==4.12.3

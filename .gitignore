@@ -1,0 +1,32 @@
+# Logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# SQLite WAL/SHM (solo se necesita el .db)
+*.db-shm
+*.db-wal
+
+# Debug files
+debug_*.html
+debug_*.png
+debug_*.txt
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# SDD artifacts (no necesarios para deploy)
+.atl/
+openspec/
+
+# Streamlit secrets (NUNCA committear)
+.streamlit/secrets.toml
