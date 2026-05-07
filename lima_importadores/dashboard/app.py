@@ -1,7 +1,16 @@
 import io
 import os
+import sys
 from datetime import date
+from pathlib import Path
 from urllib.parse import quote
+
+# Ensure the project root is on sys.path so `lima_importadores` is importable
+# whether we run via `python -m lima_importadores dashboard` or via Streamlit
+# Cloud's `streamlit run lima_importadores/dashboard/app.py`.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 import pandas as pd
 import streamlit as st
