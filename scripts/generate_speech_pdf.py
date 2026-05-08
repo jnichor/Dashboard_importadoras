@@ -53,9 +53,10 @@ def build():
         pdf,
         "“Buenos días, señor [apellido]. Le habla Jesús Nicho, de la empresa Causal A.I. Digital. "
         "Le comentaré brevemente el motivo de mi llamada: trabajamos desarrollando páginas web para "
-        "empresas importadoras del Perú, y al revisar el sector vimos que [nombre de la empresa] no "
-        "aparece en Google cuando se buscan sus productos. Por eso quise contactarlo personalmente. "
-        "¿Me regala dos minutos?”",
+        "empresas importadoras del Perú, y al revisar el sector vimos que [nombre de la empresa] "
+        "aparece en Google Maps con su dirección, pero no tiene una página web propia que muestre "
+        "su catálogo cuando alguien busca los productos que ustedes importan. Por eso quise "
+        "contactarlo personalmente. ¿Me regala dos minutos?”",
     )
 
     section(pdf, "2. Cuerpo — Propuesta de valor")
@@ -63,9 +64,12 @@ def build():
     line(
         pdf,
         "“Le agradezco. El punto es simple: hoy la mayoría de personas busca en Google antes de "
-        "comprar. Si una empresa no aparece ahí, esos clientes terminan llegando a la competencia, "
-        "muchas veces sin que el dueño se entere. Lo que nosotros hacemos es resolver exactamente "
-        "eso — una página web profesional que muestra su catálogo, transmite confianza y captura las "
+        "comprar. Aparecer en Google Maps sirve para que lo ubiquen si ya saben quién es usted o "
+        "pasan cerca de su local — pero cuando un cliente nuevo busca un producto en Google, Maps "
+        "no le muestra su catálogo, no le muestra precios, no le permite cotizar. Esos clientes "
+        "terminan llegando a la competencia que sí tiene web, muchas veces sin que el dueño se "
+        "entere. Lo que nosotros hacemos es resolver exactamente eso — una página web profesional "
+        "que complementa su ficha de Maps, muestra su catálogo, transmite confianza y captura las "
         "ventas que hoy se están perdiendo.”",
     )
 
@@ -88,8 +92,9 @@ def build():
         "directorios públicos de importadoras del Perú — está su razón social, RUC y número de "
         "contacto comercial. Yo lo que hago es revisar empresas del rubro que no tienen presencia "
         "web y los contacto directamente. Y mire, justamente por eso lo llamo: si su número está en "
-        "directorios públicos pero su empresa no aparece en Google cuando alguien busca sus "
-        "productos, ese es exactamente el problema que nosotros resolvemos.”",
+        "directorios públicos y su empresa aparece en Google Maps con su dirección, pero no tiene "
+        "una web propia que muestre su catálogo cuando alguien busca sus productos en Google, ese "
+        "es exactamente el problema que nosotros resolvemos.”",
     )
     objection(
         pdf,
@@ -157,6 +162,18 @@ def build():
     )
 
     section(pdf, "7. Preguntas frecuentes — Respuestas preparadas")
+    faq(
+        pdf,
+        "“Pero yo ya aparezco en Google Maps con mi dirección, ¿para qué necesito una web?”",
+        "“Buena pregunta y se la respondo directo: Google Maps es una ficha de su local — sirve "
+        "para que lo encuentren físicamente si ya saben quién es usted o pasan por la zona. Pero "
+        "cuando un cliente nuevo busca en Google algo como ‘importadora de [tal producto] en Lima’, "
+        "Maps no le va a mostrar su catálogo, no le va a mostrar sus precios, ni le va a permitir "
+        "cotizar. Una web hace lo que Maps no hace: muestra exactamente qué vende, transmite "
+        "confianza, y captura al cliente que está investigando antes de comprar. Y lo mejor es que "
+        "**ambas se complementan** — su web puede salir junto con su ficha de Maps en los "
+        "resultados de Google, reforzando ambas presencias en lugar de competir.”",
+    )
     faq(
         pdf,
         "“¿Y por qué me la mandarías terminada sin cobrarme nada antes?”",
@@ -252,17 +269,20 @@ def build():
     print(f"PDF generado en: {OUTPUT}")
 
 
+RESET = {"new_x": "LMARGIN", "new_y": "NEXT"}
+
+
 def title(pdf: FPDF, text: str) -> None:
     pdf.set_font("Arial", "B", 18)
     pdf.set_text_color(*PRIMARY)
-    pdf.multi_cell(0, 9, text, align="C")
+    pdf.multi_cell(0, 9, text, align="C", **RESET)
     pdf.set_text_color(0, 0, 0)
 
 
 def subtitle(pdf: FPDF, text: str) -> None:
     pdf.set_font("Arial", "I", 11)
     pdf.set_text_color(*MUTED)
-    pdf.multi_cell(0, 6, text, align="C")
+    pdf.multi_cell(0, 6, text, align="C", **RESET)
     pdf.set_text_color(0, 0, 0)
 
 
@@ -271,21 +291,21 @@ def section(pdf: FPDF, text: str) -> None:
     pdf.set_font("Arial", "B", 13)
     pdf.set_fill_color(*ACCENT_BG)
     pdf.set_text_color(*PRIMARY)
-    pdf.cell(0, 9, text, fill=True, new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 9, text, fill=True, **RESET)
     pdf.set_text_color(0, 0, 0)
     pdf.ln(2)
 
 
 def line(pdf: FPDF, text: str) -> None:
     pdf.set_font("Arial", "", 11)
-    pdf.multi_cell(0, 6, text, markdown=True)
+    pdf.multi_cell(0, 6, text, markdown=True, **RESET)
     pdf.ln(2)
 
 
 def stage(pdf: FPDF, text: str) -> None:
     pdf.set_font("Arial", "I", 10)
     pdf.set_text_color(*MUTED)
-    pdf.multi_cell(0, 6, text)
+    pdf.multi_cell(0, 6, text, **RESET)
     pdf.set_text_color(0, 0, 0)
     pdf.ln(1)
 
@@ -293,20 +313,20 @@ def stage(pdf: FPDF, text: str) -> None:
 def objection(pdf: FPDF, question: str, answer: str) -> None:
     pdf.set_font("Arial", "B", 11)
     pdf.set_text_color(*PRIMARY)
-    pdf.multi_cell(0, 6, "▸  " + question)
+    pdf.multi_cell(0, 6, "•  " + question, **RESET)
     pdf.set_text_color(0, 0, 0)
     pdf.set_font("Arial", "", 11)
-    pdf.multi_cell(0, 6, answer)
+    pdf.multi_cell(0, 6, answer, **RESET)
     pdf.ln(3)
 
 
 def faq(pdf: FPDF, question: str, answer: str) -> None:
     pdf.set_font("Arial", "B", 11)
     pdf.set_text_color(*PRIMARY)
-    pdf.multi_cell(0, 6, "▸  " + question)
+    pdf.multi_cell(0, 6, "•  " + question, **RESET)
     pdf.set_text_color(0, 0, 0)
     pdf.set_font("Arial", "", 11)
-    pdf.multi_cell(0, 6, answer, markdown=True)
+    pdf.multi_cell(0, 6, answer, markdown=True, **RESET)
     pdf.ln(3)
 
 
