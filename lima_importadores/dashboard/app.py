@@ -1,5 +1,4 @@
 import io
-import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -435,7 +434,8 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 @st.cache_data(ttl=300)
 def load_data() -> pd.DataFrame:
     """Carga los negocios desde la DB (Postgres si DATABASE_URL esta seteada,
-    SQLite local en caso contrario). Usa el engine centralizado del paquete."""
+    SQLite local en caso contrario). Usa el engine centralizado del paquete.
+    Incluye el outcome de la ultima llamada via LEFT JOIN a call_outcomes."""
     from sqlalchemy import text
     from lima_importadores.storage import engine
 
@@ -460,9 +460,12 @@ def load_data() -> pd.DataFrame:
             COALESCE(
                 w.verdict,
                 CASE WHEN b.has_website = FALSE THEN 'no_site' ELSE 'unknown' END
-            ) AS verdict
+            ) AS verdict,
+            co.contacted            AS contacted_db,
+            co.response             AS response_db
         FROM businesses b
         LEFT JOIN website_checks w ON b.place_id = w.place_id
+        LEFT JOIN call_outcomes  co ON b.place_id = co.place_id
     """)
     try:
         with engine.connect() as conn:
@@ -488,6 +491,29 @@ def _antiguedad_badge(flag: str) -> str:
         "no_determinada": "⚠️ No determinada",
         "no_califica":    "❌ No califica",
     }.get(flag, flag)
+
+
+# ---------------------------------------------------------------------------
+# Mapeos de outcomes de llamada (DB <-> UI)
+# ---------------------------------------------------------------------------
+
+CONTACTO_DB_TO_DISPLAY = {
+    "no_llamado":    "⚪ No llamado",
+    "contesto":      "✅ Contestó",
+    "no_contesto":   "❌ No contestó",
+}
+CONTACTO_DISPLAY_TO_DB = {v: k for k, v in CONTACTO_DB_TO_DISPLAY.items()}
+CONTACTO_OPTIONS = list(CONTACTO_DB_TO_DISPLAY.values())
+
+RESULTADO_NONE_DISPLAY = "—"
+RESULTADO_DB_TO_DISPLAY = {
+    "acepto":    "🎉 Aceptó",
+    "rechazo":   "🚫 Rechazó",
+    "pendiente": "⏳ Pendiente",
+}
+RESULTADO_DISPLAY_TO_DB = {v: k for k, v in RESULTADO_DB_TO_DISPLAY.items()}
+RESULTADO_DISPLAY_TO_DB[RESULTADO_NONE_DISPLAY] = None
+RESULTADO_OPTIONS = [RESULTADO_NONE_DISPLAY] + list(RESULTADO_DB_TO_DISPLAY.values())
 
 
 # ---------------------------------------------------------------------------
@@ -639,11 +665,35 @@ def render_table(filtered: pd.DataFrame) -> None:
         axis=1,
     )
 
-    show_cols = ["Nombre", "Distrito", "Dirección", "Categoría", "Reseñas", "Calificación",
-                 "Teléfono", "WhatsApp", "Sitio web", "Estado web", "Antigüedad"]
+    # Outcomes: convertir valores de DB a etiquetas legibles para los dropdowns.
+    if "contacted_db" in display.columns:
+        display["Contacto"] = (
+            display["contacted_db"]
+            .fillna("no_llamado")
+            .map(lambda v: CONTACTO_DB_TO_DISPLAY.get(v, "⚪ No llamado"))
+        )
+    else:
+        display["Contacto"] = "⚪ No llamado"
+
+    if "response_db" in display.columns:
+        display["Resultado"] = display["response_db"].map(
+            lambda v: RESULTADO_DB_TO_DISPLAY.get(v, RESULTADO_NONE_DISPLAY)
+            if pd.notna(v) else RESULTADO_NONE_DISPLAY
+        )
+    else:
+        display["Resultado"] = RESULTADO_NONE_DISPLAY
+
+    show_cols = [
+        "Nombre", "Distrito", "Teléfono", "WhatsApp",
+        "Contacto", "Resultado",
+        "Sitio web", "Estado web", "Antigüedad",
+        "Categoría", "Reseñas", "Calificación", "Dirección",
+    ]
     show_cols = [c for c in show_cols if c in display.columns]
 
-    st.dataframe(
+    editor_key = "prospects_editor"
+
+    st.data_editor(
         display[show_cols],
         use_container_width=True,
         height=560,
@@ -652,8 +702,66 @@ def render_table(filtered: pd.DataFrame) -> None:
             "WhatsApp": st.column_config.LinkColumn("WhatsApp", display_text="💬 Enviar"),
             "Calificación": st.column_config.NumberColumn("⭐", format="%.1f"),
             "Reseñas": st.column_config.NumberColumn("Reseñas", format="%d"),
+            "Contacto": st.column_config.SelectboxColumn(
+                "📞 Contacto",
+                help="Estado de la llamada al negocio",
+                options=CONTACTO_OPTIONS,
+                required=True,
+                width="small",
+            ),
+            "Resultado": st.column_config.SelectboxColumn(
+                "🎯 Resultado",
+                help="Si contestó, ¿aceptó la propuesta?",
+                options=RESULTADO_OPTIONS,
+                width="small",
+            ),
         },
+        disabled=[c for c in show_cols if c not in ("Contacto", "Resultado")],
+        key=editor_key,
+        hide_index=True,
     )
+
+    # Persistir cambios: cualquier edicion en Contacto/Resultado se guarda en
+    # call_outcomes via UPSERT, se invalida la cache y se rerendera.
+    edits = st.session_state.get(editor_key, {}).get("edited_rows", {})
+    if edits:
+        from lima_importadores.storage import get_session
+        from lima_importadores.storage.repository import upsert_call_outcome
+
+        try:
+            with get_session() as session:
+                for row_idx, changes in edits.items():
+                    place_id = display.iloc[row_idx]["place_id"]
+                    current_contacto = display.iloc[row_idx]["Contacto"]
+                    current_resultado = display.iloc[row_idx]["Resultado"]
+
+                    new_contacto_display = changes.get("Contacto", current_contacto)
+                    new_resultado_display = changes.get("Resultado", current_resultado)
+
+                    contacted_db = CONTACTO_DISPLAY_TO_DB.get(
+                        new_contacto_display, "no_llamado"
+                    )
+                    response_db = RESULTADO_DISPLAY_TO_DB.get(
+                        new_resultado_display, None
+                    )
+
+                    upsert_call_outcome(
+                        session=session,
+                        place_id=place_id,
+                        contacted=contacted_db,
+                        response=response_db,
+                    )
+                session.commit()
+
+            # Resetear el estado del editor para que no reprocese los mismos edits
+            # despues del rerun.
+            if editor_key in st.session_state:
+                del st.session_state[editor_key]
+            load_data.clear()
+            st.toast(f"✅ {len(edits)} cambio(s) guardado(s)", icon="💾")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error al guardar cambios: {e}")
 
 
 def render_map(filtered: pd.DataFrame) -> None:
