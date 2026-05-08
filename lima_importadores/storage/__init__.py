@@ -5,10 +5,20 @@ from .models import Base
 from lima_importadores.config import CONFIG
 
 
-def _build_engine(db_path: str | None = None):
-    path = db_path or CONFIG.database.path
+def _build_engine():
+    """Construye el engine de SQLAlchemy.
+
+    Si CONFIG.database.url esta seteado (via env DATABASE_URL), usa Postgres.
+    Si no, cae al SQLite local definido por CONFIG.database.path (legacy).
+    """
+    if CONFIG.database.url:
+        return create_engine(
+            CONFIG.database.url,
+            pool_pre_ping=True,
+        )
+
     engine = create_engine(
-        f"sqlite:///{path}",
+        f"sqlite:///{CONFIG.database.path}",
         connect_args={"check_same_thread": False},
     )
     with engine.connect() as conn:

@@ -77,3 +77,25 @@ class ScrapeRun(Base):
     keywords_used = Column(Text, nullable=False)
     businesses_found = Column(Integer, nullable=True)
     errors = Column(Integer, nullable=True)
+
+
+class CallOutcome(Base):
+    """Resultado del seguimiento de llamadas a un negocio.
+
+    contacted: 'no_llamado' | 'contesto' | 'no_contesto'
+    response:  'acepto' | 'rechazo' | 'pendiente' | None  (solo si contacted='contesto')
+    """
+    __tablename__ = "call_outcomes"
+    __table_args__ = (
+        UniqueConstraint("place_id", name="uq_co_place_id"),
+        Index("idx_call_outcomes_place_id", "place_id"),
+        Index("idx_call_outcomes_contacted", "contacted"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    place_id = Column(String, ForeignKey("businesses.place_id"), nullable=False)
+    contacted = Column(String, nullable=False, default="no_llamado")
+    response = Column(String, nullable=True)
+    called_at = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
+    updated_at = Column(String, nullable=False)

@@ -30,3 +30,8 @@ openspec/
 
 # Streamlit secrets (NUNCA committear)
 .streamlit/secrets.toml
+
+# Variables de entorno con credenciales (NUNCA committear)
+.env
+.env.local
+.env.*.local

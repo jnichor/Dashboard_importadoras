@@ -15,8 +15,6 @@ if str(_PROJECT_ROOT) not in sys.path:
 import pandas as pd
 import streamlit as st
 
-from lima_importadores.config import CONFIG
-
 # ---------------------------------------------------------------------------
 # Page config + styling
 # ---------------------------------------------------------------------------
@@ -435,37 +433,44 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 # ---------------------------------------------------------------------------
 
 @st.cache_data(ttl=300)
-def load_data(db_path: str) -> pd.DataFrame:
-    from sqlalchemy import create_engine, text
-    if not os.path.exists(db_path):
-        return pd.DataFrame()
+def load_data() -> pd.DataFrame:
+    """Carga los negocios desde la DB (Postgres si DATABASE_URL esta seteada,
+    SQLite local en caso contrario). Usa el engine centralizado del paquete."""
+    from sqlalchemy import text
+    from lima_importadores.storage import engine
 
-    engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
     query = text("""
         SELECT
             b.place_id,
-            b.name                  AS Nombre,
-            b.district              AS Distrito,
-            b.category              AS Categoría,
-            b.review_count          AS Reseñas,
-            b.rating                AS Calificación,
-            b.phone                 AS Teléfono,
+            b.name                  AS "Nombre",
+            b.district              AS "Distrito",
+            b.category              AS "Categoría",
+            b.review_count          AS "Reseñas",
+            b.rating                AS "Calificación",
+            b.phone                 AS "Teléfono",
             b.website_url           AS "Sitio web",
             b.has_website,
             b.antiguedad_flag,
             b.prospect_qualifies,
             b.disqualify_reason,
-            b.address               AS Dirección,
+            b.address               AS "Dirección",
             b.latitude,
             b.longitude,
             b.oldest_review_date,
-            COALESCE(w.verdict, CASE WHEN b.has_website = 0 THEN 'no_site' ELSE 'unknown' END) AS verdict
+            COALESCE(
+                w.verdict,
+                CASE WHEN b.has_website = FALSE THEN 'no_site' ELSE 'unknown' END
+            ) AS verdict
         FROM businesses b
         LEFT JOIN website_checks w ON b.place_id = w.place_id
     """)
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn)
-    return df
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn)
+        return df
+    except Exception as e:
+        st.error(f"Error al cargar datos de la base: {e}")
+        return pd.DataFrame()
 
 
 def _verdict_badge(verdict: str) -> str:
@@ -810,8 +815,7 @@ def main():
     if not check_password():
         return
 
-    db_path = CONFIG.database.path
-    df = load_data(db_path)
+    df = load_data()
 
     # Hero
     st.markdown(

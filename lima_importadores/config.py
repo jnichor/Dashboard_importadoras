@@ -1,6 +1,13 @@
 import os
+from pathlib import Path
 from pydantic import BaseModel, Field
 import yaml
+from dotenv import load_dotenv
+
+# Cargar variables del archivo .env (en la raiz del proyecto) si existe.
+# Esto debe correr ANTES de leer os.environ.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(dotenv_path=_PROJECT_ROOT / ".env")
 
 
 class RateLimitingConfig(BaseModel):
@@ -55,6 +62,7 @@ class QualifierConfig(BaseModel):
 
 class DatabaseConfig(BaseModel):
     path: str = "data/lima_importadores.db"
+    url: str | None = None  # Si esta presente, sobrescribe `path` y usa Postgres.
 
 
 class LoggingConfig(BaseModel):
@@ -79,6 +87,9 @@ def load_config(path: str = "config.yaml") -> Config:
     env_db = os.environ.get("LIMA_DB_PATH")
     if env_db:
         config.database.path = env_db
+    env_url = os.environ.get("DATABASE_URL")
+    if env_url:
+        config.database.url = env_url
     return config
 
 
