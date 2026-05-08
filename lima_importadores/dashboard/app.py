@@ -1,8 +1,9 @@
 import io
 import sys
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
 # Ensure the project root is on sys.path so `lima_importadores` is importable
 # whether we run via `python -m lima_importadores dashboard` or via Streamlit
@@ -537,18 +538,31 @@ def _format_phone_for_whatsapp(phone) -> str | None:
     return "51" + digits
 
 
+def _saludo_lima() -> str:
+    """Devuelve un saludo apropiado segun la hora local de Lima."""
+    hora = datetime.now(ZoneInfo("America/Lima")).hour
+    if 5 <= hora < 12:
+        return "Buenos días"
+    if 12 <= hora < 19:
+        return "Buenas tardes"
+    return "Buenas noches"
+
+
 def _whatsapp_url(phone, name, district) -> str | None:
-    """Generate a wa.me URL with a pre-filled outreach message."""
+    """Genera una URL wa.me con un mensaje de outreach pre-cargado.
+    El saludo se adapta a la hora local de Lima (Peru)."""
     digits = _format_phone_for_whatsapp(phone)
     if not digits:
         return None
     name_part = str(name).strip() if name and not pd.isna(name) else "equipo"
     district_part = str(district).strip() if district and not pd.isna(district) else "Lima"
+
     msg = (
-        f"Hola, soy diseñador web y vi su negocio *{name_part}* en Google Maps "
-        f"({district_part}). Me especializo en sitios web para empresas "
-        f"importadoras y noté que podrían beneficiarse de fortalecer su presencia "
-        f"online. ¿Tendría unos minutos para conversar?"
+        f"{_saludo_lima()}, somos *Causal AI Digital*, empresa de diseño web. "
+        f"Vimos su negocio *{name_part}* en Google Maps ({district_part}). "
+        f"Nos especializamos en sitios web para empresas importadoras y "
+        f"notamos que podrían beneficiarse de fortalecer su presencia online. "
+        f"¿Tendría unos minutos para conversar?"
     )
     return f"https://wa.me/{digits}?text={quote(msg)}"
 
@@ -661,7 +675,11 @@ def render_table(filtered: pd.DataFrame) -> None:
     display["Estado web"] = display["verdict"].apply(_verdict_badge)
     display["Antigüedad"] = display["antiguedad_flag"].apply(_antiguedad_badge)
     display["WhatsApp"] = display.apply(
-        lambda r: _whatsapp_url(r.get("Teléfono"), r.get("Nombre"), r.get("Distrito")),
+        lambda r: _whatsapp_url(
+            r.get("Teléfono"),
+            r.get("Nombre"),
+            r.get("Distrito"),
+        ),
         axis=1,
     )
 
