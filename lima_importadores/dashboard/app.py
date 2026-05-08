@@ -558,10 +558,13 @@ def _whatsapp_url(phone, name, district) -> str | None:
     district_part = str(district).strip() if district and not pd.isna(district) else "Lima"
 
     msg = (
-        f"{_saludo_lima()}, somos *Causal AI Digital*, empresa de diseño web. "
-        f"Vimos su negocio *{name_part}* en Google Maps ({district_part}). "
-        f"Nos especializamos en sitios web para empresas importadoras y "
-        f"notamos que podrían beneficiarse de fortalecer su presencia online. "
+        f"{_saludo_lima()} 😊\n"
+        f"Somos *Causal AI Digital*, empresa de inteligencia artificial y "
+        f"soluciones digitales.\n\n"
+        f"Vimos su negocio *{name_part}* en Google Maps ({district_part}) y "
+        f"creemos que podrían beneficiarse de una página web profesional "
+        f"para mostrar sus productos, captar clientes y organizar mejor sus "
+        f"consultas.\n\n"
         f"¿Tendría unos minutos para conversar?"
     )
     return f"https://wa.me/{digits}?text={quote(msg)}"
